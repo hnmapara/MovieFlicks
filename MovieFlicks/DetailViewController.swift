@@ -15,10 +15,16 @@ class DetailViewController: UIViewController {
     @IBOutlet weak var titleLable: UILabel!
     @IBOutlet weak var overViewLabel: UILabel!
     
+    @IBOutlet weak var scrollView: UIScrollView!
+    @IBOutlet weak var infoView: UIView!
+    
+    
     var movie: NSDictionary!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        scrollView.contentSize = CGSize(width: scrollView.frame.size.width, height: infoView.frame.origin.y + infoView.frame.size.height)
         print(movie)
         let title = movie["title"] as? String
         let overview = movie["overview"] as? String
@@ -29,6 +35,7 @@ class DetailViewController: UIViewController {
         }
         titleLable.text = title
         overViewLabel.text = overview
+        overViewLabel.sizeToFit()
     }
 
     override func didReceiveMemoryWarning() {
