@@ -8,19 +8,35 @@
 
 import UIKit
 import AFNetworking
+import MBProgressHUD
 
 class MoviesViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
     @IBOutlet weak var tableView: UITableView!
-    var movies: [NSDictionary]?
+    @IBOutlet weak var errorLabel: UILabel!
     
+    var movies: [NSDictionary]?
     var endPoint: String!
+    var refreshControl: UIRefreshControl!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         tableView.dataSource = self
         tableView.delegate = self
+        errorLabel.text = "Error"
+        self.errorLabel.isHidden = true
 
+        // Initialize a UIRefreshControl
+        self.refreshControl = UIRefreshControl()
+        self.refreshControl.addTarget(self, action: #selector(MoviesViewController.performNetworkRequest), for: UIControlEvents.valueChanged)
+        
+        // add refresh control to table view
+        tableView.addSubview(self.refreshControl)
+        performNetworkRequest()
+    }
+    
+    func performNetworkRequest() {
+        
         let apiKey = "a07e22bc18f5cb106bfe4cc1f83ad8ed"
         let url = URL(string:"https://api.themoviedb.org/3/movie/\(endPoint!)?api_key=\(apiKey)")
         let request = URLRequest(url: url!)
@@ -29,20 +45,34 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UITableView
             delegate:nil,
             delegateQueue:OperationQueue.main
         )
+        // Display HUD right before the request is made
+        //MBProgressHUD.showAdded(to: self.view, animated: true)
         
         let task : URLSessionDataTask = session.dataTask(with: request,completionHandler: { (dataOrNil, response, error) in
+            //MBProgressHUD.hide(for: self.view, animated: true)
+            //self.refreshControl.endRefreshing()
+            
+            //if ((error) != nil) {
+            //    self.errorLabel.text = " Netowork Error"
+            //    self.errorLabel.isHidden = false
+            //    print("There was a network error")
+            //}
+            
             if let data = dataOrNil {
+                //self.errorLabel.isHidden = true
                 if let responseDictionary = try! JSONSerialization.jsonObject(with: data, options:[]) as? NSDictionary {
-                    NSLog("response: \(responseDictionary)")
-                    self.movies = responseDictionary["results"] as! [NSDictionary]                
+                    //NSLog("response: \(responseDictionary)")
+                    self.movies = responseDictionary["results"] as? [NSDictionary]
                     self.tableView.reloadData()
+                    self.refreshControl.endRefreshing()
                 }
             } else {
-                print("There was a network error")
+                //self.errorLabel.text = "No Data"
+                //self.errorLabel.isHidden = false
+                print("There was an error")
             }
         });
         task.resume()
-
     }
 
     override func didReceiveMemoryWarning() {
@@ -69,8 +99,25 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UITableView
         let overview = movie["overview"] as! String
         if let posterPath = movie["poster_path"] as? String {
             let baseUrl = "http://image.tmdb.org/t/p/w500"
-            let imageUrl = URL(string: baseUrl + posterPath)
-            cell.posterImageView.setImageWith(imageUrl!)
+            let imageUrl:URL! = URL(string: baseUrl + posterPath)
+            //cell.posterImageView.setImageWith(imageUrl!)
+            let imageRequest = URLRequest(url: imageUrl)
+            
+            cell.posterImageView.setImageWith(imageRequest, placeholderImage: nil, success: { (imageRequest, imageResponse, image) in
+                   if imageResponse != nil {
+                        print("Image was NOT cached, fade in image")
+                        cell.posterImageView.alpha = 0.0
+                        cell.posterImageView.image = image
+                        UIView.animate(withDuration: 0.3, animations: { () -> Void in
+                            cell.posterImageView.alpha = 1.0
+                        })
+                   } else {
+                      print("Image was cached so just update the image")
+                      cell.posterImageView.image = image
+                   }
+                }, failure: { (imageRequest, iresponse, error) in
+                    print("image fetch error")
+                })
         }
         
         

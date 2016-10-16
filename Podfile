@@ -5,6 +5,7 @@ target 'MovieFlicks' do
   # Comment this line if you're not using Swift and don't want to use dynamic frameworks
   use_frameworks!
   pod 'AFNetworking', '~> 3.0'
+  pod 'MBProgressHUD'
   # Pods for MovieFlicks
 
 end
