@@ -36,39 +36,42 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UITableView
     }
     
     func performNetworkRequest() {
+        self.refreshControl.beginRefreshing()
         
         let apiKey = "a07e22bc18f5cb106bfe4cc1f83ad8ed"
         let url = URL(string:"https://api.themoviedb.org/3/movie/\(endPoint!)?api_key=\(apiKey)")
         let request = URLRequest(url: url!)
+        let sessionConfig = URLSessionConfiguration.default
+        sessionConfig.timeoutIntervalForRequest = 1.0
+        
         let session = URLSession(
-            configuration: URLSessionConfiguration.default,
+            configuration: sessionConfig,
             delegate:nil,
             delegateQueue:OperationQueue.main
         )
         // Display HUD right before the request is made
-        //MBProgressHUD.showAdded(to: self.view, animated: true)
+        MBProgressHUD.showAdded(to: self.view, animated: true)
         
         let task : URLSessionDataTask = session.dataTask(with: request,completionHandler: { (dataOrNil, response, error) in
-            //MBProgressHUD.hide(for: self.view, animated: true)
-            //self.refreshControl.endRefreshing()
-            
-            //if ((error) != nil) {
-            //    self.errorLabel.text = " Netowork Error"
-            //    self.errorLabel.isHidden = false
-            //    print("There was a network error")
-            //}
+            MBProgressHUD.hide(for: self.view, animated: true)
+            self.refreshControl.endRefreshing()
+            if ((error) != nil) {
+                self.errorLabel.text = " Netowork or server error"
+                self.errorLabel.isHidden = false
+                print("There was a network error")
+                return
+            }
             
             if let data = dataOrNil {
-                //self.errorLabel.isHidden = true
+                self.errorLabel.isHidden = true
                 if let responseDictionary = try! JSONSerialization.jsonObject(with: data, options:[]) as? NSDictionary {
                     //NSLog("response: \(responseDictionary)")
                     self.movies = responseDictionary["results"] as? [NSDictionary]
                     self.tableView.reloadData()
-                    self.refreshControl.endRefreshing()
-                }
+                                    }
             } else {
-                //self.errorLabel.text = "No Data"
-                //self.errorLabel.isHidden = false
+                self.errorLabel.text = "No Data"
+                self.errorLabel.isHidden = false
                 print("There was an error")
             }
         });
